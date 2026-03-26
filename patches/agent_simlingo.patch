@@ -1,0 +1,22 @@
+diff --git a/team_code/agent_simlingo.py b/team_code/agent_simlingo.py
+index 4675d47..0938121 100644
+--- a/team_code/agent_simlingo.py
++++ b/team_code/agent_simlingo.py
+@@ -145,7 +145,7 @@ class LingoAgent(autonomous_agent.AutonomousAgent):
+         self.route_planner_min_distance = 7.5
+ 
+         #load config from .hydra folder
+-        self.config_load_path = Path(self.config_path).parent.parent.parent / '.hydra' / 'config.yaml'
++        self.config_load_path = Path('/home/robot/Document/python_code/VLA/simlingo/checkpoints/simlingo/.hydra/config.yaml')
+         with open(self.config_load_path, 'r') as file:
+             cfg = OmegaConf.load(file)
+         self.cfg = cfg
+@@ -170,7 +170,7 @@ class LingoAgent(autonomous_agent.AutonomousAgent):
+                 _recursive_=False
+             ).to(self.device)
+         torch.set_default_dtype(default_dtype)
+-        self.model.load_state_dict(torch.load(self.config_path))
++        self.model.load_state_dict(torch.load("/home/robot/Document/python_code/VLA/simlingo/checkpoints/simlingo/checkpoints/epoch=013.ckpt/pytorch_model.pt", map_location=self.device))
+         self.iter = self.config_path.split("epoch=")[-1].split("/")[0]
+         self.session = self.config_path.split("/")[-4]
+         

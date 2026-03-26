@@ -1,0 +1,11 @@
+diff --git a/simlingo_training/config/experiment/debug.yaml b/simlingo_training/config/experiment/debug.yaml
+index fccd971..e219874 100644
+--- a/simlingo_training/config/experiment/debug.yaml
++++ b/simlingo_training/config/experiment/debug.yaml
+@@ -44,4 +44,4 @@ val_every_n_epochs: 1
+ 
+ gpus: 1
+ seed: 42
+-name: debug
+\ No newline at end of file
++name: debug

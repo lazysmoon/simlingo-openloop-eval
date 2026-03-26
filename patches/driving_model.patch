@@ -1,0 +1,80 @@
+diff --git a/simlingo_training/models/driving.py b/simlingo_training/models/driving.py
+index e9f8bf4..e6d1925 100644
+--- a/simlingo_training/models/driving.py
++++ b/simlingo_training/models/driving.py
+@@ -309,8 +309,8 @@ class DrivingModel(pl.LightningModule):
+                 "language_gt": language_gt,
+                 "prompt": batch.driving_input.prompt.language_string,
+                 "path": run_ids,
+-                "qa_templates": batch.qa_templates,
+-                "eval_infos": batch.driving_label.eval_infos,
++                "qa_templates": list(batch.qa_templates) if batch.qa_templates is not None else [],
++                "eval_infos": list(batch.driving_label.eval_infos) if batch.driving_label.eval_infos is not None else [],
+             }
+         else:
+             self.prediction["waypoints"].append(speed_wps)
+@@ -321,8 +321,8 @@ class DrivingModel(pl.LightningModule):
+             self.prediction["language_gt"].extend(language_gt)
+             self.prediction["prompt"].extend(batch.driving_input.prompt.language_string)
+             self.prediction["path"].extend(run_ids)
+-            self.prediction["qa_templates"].extend(batch.qa_templates)
+-            self.prediction["eval_infos"].extend(batch.driving_label.eval_infos)
++            self.prediction["qa_templates"].extend(batch.qa_templates if batch.qa_templates is not None else [])
++            self.prediction["eval_infos"].extend(batch.driving_label.eval_infos if batch.driving_label.eval_infos is not None else [])
+             
+         
+         return speed_wps, route, language, speed_wps_gt, route_gt, language_gt
+@@ -483,13 +483,22 @@ class DrivingModel(pl.LightningModule):
+         carla_fps = 20
+             
+         
+-        for samples, name in zip([samples_safety, samples_instruction, samples_neither, samples_all], ["instruction"]):
++        for samples, name in zip([samples_safety, samples_instruction, samples_neither, samples_all], ["safety", "instruction", "neither", "all"]):
+             if len(samples) == 0:
+                 continue
+             route_preds_sample = route_preds[samples].cpu().numpy()
+             route_gt_sample = route_gt[samples].cpu().numpy()
+             waypoints_preds_sample = waypoints_preds[samples].cpu().numpy()
+             waypoints_gt_sample = waypoints_gt[samples].cpu().numpy()
++            # 如果 eval_infos 为空（普通验证集没有这个字段），只计算 ADE/FDE
++            if len(self.prediction["eval_infos"]) == 0:
++                ade_route = np.mean(np.linalg.norm(route_preds_sample - route_gt_sample, axis=-1), axis=-1)
++                ade_fde.update({
++                    f"num_samples_{name}": len(ade_route),
++                    f"ADE_route_{name}": float(np.mean(ade_route)),
++                    f"FDE_route_{name}": float(np.mean(np.linalg.norm(route_preds_sample[:, -1] - route_gt_sample[:, -1], axis=-1))),
++                })
++                continue
+             eval_infos_sample = [self.prediction["eval_infos"][i] for i in samples]
+             waypoints_org_sample = [eval_infos_sample[i]["org_wps"] for i in range(len(samples))]
+             route_org_sample = [eval_infos_sample[i]["org_path"] for i in range(len(samples))]
+@@ -695,7 +704,29 @@ class DrivingModel(pl.LightningModule):
+             
+             ade_fde.update({
+                 f"num_samples_{name}": len(ade_route),
++                f"ADE_route_{name}": float(np.mean(ade_route)),
++                f"FDE_route_{name}": float(np.mean(np.linalg.norm(route_preds_sample[:, -1] - route_gt_sample[:, -1], axis=-1))),
++            })
++
++        # 保存逐帧路点数据用于可视化
++        per_frame_data = []
++        route_preds_np = route_preds.cpu().numpy()
++        route_gt_np = route_gt.cpu().numpy()
++        waypoints_preds_np = waypoints_preds.cpu().numpy()
++        waypoints_gt_np = waypoints_gt.cpu().numpy()
++        for i in range(len(route_preds_np)):
++            per_frame_data.append({
++                'frame_id': i,
++                'path': self.prediction["path"][i] if i < len(self.prediction["path"]) else str(i),
++                'route_pred': route_preds_np[i].tolist(),
++                'route_gt': route_gt_np[i].tolist(),
++                'speed_wp_pred': waypoints_preds_np[i].tolist(),
++                'speed_wp_gt': waypoints_gt_np[i].tolist(),
+             })
++        per_frame_path = f"{str(save_prediction_path)}/per_frame_waypoints_rank_{self.local_rank}.json"
++        with open(per_frame_path, 'w') as f:
++            json.dump(per_frame_data, f)
++        print(f"[✓] 逐帧路点保存到: {per_frame_path}")
+ 
+         save_path_tmp = f"{str(save_prediction_path)}/dreamer_results_rank_{self.local_rank}.json"
+         if os.path.exists(save_path_tmp):

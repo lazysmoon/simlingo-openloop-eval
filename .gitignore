@@ -1,0 +1,50 @@
+# 模型权重和数据集（体积太大，用户自行下载）
+checkpoints/
+database/
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.tar.gz
+
+# 评估输出
+outputs/
+eval_results/
+*.json
+*.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Hydra 输出
+.hydra/
+simlingo_training/.hydra/
+simlingo_training/outputs/
+
+# 备份文件
+*.bak
+*.orig
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 预训练缓存
+simlingo_training/pretrained/
+pretrained/
+
+# 日志
+*.log
+wandb/
+
+# 数据库软链接（用户自建）
+simlingo_training/database
+simlingo_training/data
+simlingo_training/.hydra
