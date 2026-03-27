@@ -260,9 +260,9 @@ def plot_waypoints(ax, pred, gt, title="路点预测 vs GT"):
     ax.legend(fontsize=9, loc='upper left')
     ax.grid(True, alpha=0.3)
     ax.set_aspect('equal', adjustable='box')
-    ax.invert_xaxis()
+    #ax.invert_xaxis()
     x_range = max(2.0, np.max(np.abs(np.concatenate([pred[:,1], gt[:,1]]))) * 2 + 0.5)
-    ax.set_xlim(x_range, -x_range)
+    ax.set_xlim(-x_range, x_range)
     return ade, fde
 
 
@@ -273,14 +273,13 @@ def make_single_frame_figure(
     scene_description: str,
     save_path: str,
 ):
-    fig = plt.figure(figsize=(16, 10))
+    fig = plt.figure(figsize=(16, 10), constrained_layout=True)
     fig.patch.set_facecolor('#f8f9fa')
 
     gs = gridspec.GridSpec(
         2, 2,
         figure=fig,
         height_ratios=[2.5, 1],
-        hspace=0.35, wspace=0.3
     )
 
     # ── 左上：摄像头图像 ────────────────────────────────────
@@ -347,11 +346,11 @@ def make_single_frame_figure(
     ax_txt.text(
         0.05, 0.80, wrapped,
         transform=ax_txt.transAxes,
-        fontsize=9, va='top', color='#34495e',
+        fontsize=10, va='top', color='#34495e',
         wrap=True, linespacing=1.6
     )
     ax_txt.text(
-        0.05, 0.15,
+        0.05, 0.05,
         f"ADE: {ade:.4f} m   |   FDE: {fde:.4f} m   |   样本路径: ...{str(img_path)[-50:]}",
         transform=ax_txt.transAxes,
         fontsize=8, va='bottom', color='gray'
@@ -375,20 +374,138 @@ def make_single_frame_figure(
 
 # ── 4. 主函数 ──────────────────────────────────────────────────────────────────
 
+# def main():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument('--waypoints_json', required=True,
+#                         help='per_frame_waypoints_rank_0.json 路径')
+#     parser.add_argument('--frame_id', type=int, default=0,
+#                         help='要可视化的帧编号（0-based）')
+#     parser.add_argument('--output', default='eval_results/single_frame',
+#                         help='输出目录')
+#     parser.add_argument('--no_llm', action='store_true',
+#                         help='跳过语言描述生成（节省时间）')
+#     parser.add_argument('--device', default='cuda')
+#     args = parser.parse_args()
+
+#     # 加载路点数据
+#     frames = load_waypoints(args.waypoints_json)
+#     if args.frame_id >= len(frames):
+#         print(f"[!] frame_id {args.frame_id} 超出范围（共 {len(frames)} 帧）")
+#         return
+
+#     frame = frames[args.frame_id]
+#     print(f"[i] 处理帧 #{frame['frame_id']}，路径: {frame['path'][-60:]}")
+
+#     # 找到图像
+#     route_dir = get_route_dir(frame['path'])
+#     img_path  = find_frame_image(route_dir)
+#     print(f"[i] 图像路径: {img_path}")
+
+#     # 加载 measurement
+#     measurement = None
+#     if img_path:
+#         measurement = load_measurement(route_dir, img_path)
+
+#     # 生成场景描述
+#     if args.no_llm:
+#         scene_desc = "（已跳过语言描述生成，使用 --no_llm 标志）"
+#     elif img_path and img_path.exists():
+#         scene_desc = generate_scene_description(img_path, device=args.device)
+#     else:
+#         scene_desc = "（图像未找到，无法生成描述）"
+
+#     print(f"[i] 场景描述: {scene_desc}")
+
+#     # 生成可视化
+#     save_path = os.path.join(
+#         args.output, f"frame_{args.frame_id:04d}_analysis.png"
+#     )
+#     make_single_frame_figure(
+#         frame_data=frame,
+#         img_path=img_path,
+#         measurement=measurement,
+#         scene_description=scene_desc,
+#         save_path=save_path,
+#     )
+
+#     # 同时打印数值
+#     pred = np.array(frame['route_pred'])
+#     gt   = np.array(frame['route_gt'])
+#     n    = min(len(pred), len(gt))
+#     ade  = float(np.mean(np.linalg.norm(pred[:n] - gt[:n], axis=-1)))
+#     fde  = float(np.linalg.norm(pred[-1] - gt[-1]))
+#     print(f"\n{'='*50}")
+#     print(f"  帧编号:  #{frame['frame_id']}")
+#     print(f"  ADE:     {ade:.4f} m")
+#     print(f"  FDE:     {fde:.4f} m")
+#     if measurement:
+#         print(f"  速度:    {measurement.get('speed', 'N/A'):.2f} m/s")
+#         cmd = measurement.get('command', 4)
+#         print(f"  导航命令: {COMMAND_MAP.get(cmd, cmd)}")
+#     print(f"  场景描述: {scene_desc[:100]}...")
+#     print(f"{'='*50}")
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--waypoints_json', required=True,
+    parser.add_argument('--waypoints_json', default=None,
                         help='per_frame_waypoints_rank_0.json 路径')
+    parser.add_argument('--route_dir', default=None,
+                        help='直接指定路线目录，不依赖 waypoints_json')
     parser.add_argument('--frame_id', type=int, default=0,
-                        help='要可视化的帧编号（0-based）')
-    parser.add_argument('--output', default='eval_results/single_frame',
-                        help='输出目录')
-    parser.add_argument('--no_llm', action='store_true',
-                        help='跳过语言描述生成（节省时间）')
+                        help='帧编号')
+    parser.add_argument('--output', default='eval_results/single_frame')
+    parser.add_argument('--no_llm', action='store_true')
     parser.add_argument('--device', default='cuda')
     args = parser.parse_args()
 
-    # 加载路点数据
+    # ── 模式一：直接指定路线目录（不需要 waypoints_json）──
+    if args.route_dir:
+        route_dir = Path(args.route_dir)
+        img_path = find_frame_image(route_dir, args.frame_id)
+        measurement = load_measurement(route_dir, img_path) if img_path else None
+
+        # 从 measurements 里取 GT 路点
+        gt_route = []
+        if measurement and 'route' in measurement:
+            gt_route = measurement['route'][:20]
+        while len(gt_route) < 20:
+            gt_route.append(gt_route[-1] if gt_route else [0, 0])
+
+        # 构造假的 frame_data（没有模型预测，pred 和 gt 一样，仅展示场景）
+        frame = {
+            'frame_id': args.frame_id,
+            'path': str(img_path) if img_path else str(route_dir),
+            'route_pred': gt_route,   # 无预测时用 GT 占位
+            'route_gt':   gt_route,
+            'speed_wp_pred': [[i*0.5, 0] for i in range(10)],
+            'speed_wp_gt':   [[i*0.5, 0] for i in range(10)],
+        }
+
+        if args.no_llm:
+            scene_desc = "（已跳过语言描述生成）"
+        elif img_path and img_path.exists():
+            scene_desc = generate_scene_description(img_path, device=args.device)
+        else:
+            scene_desc = "（图像未找到）"
+
+        save_path = os.path.join(
+            args.output,
+            f"{route_dir.name}_frame{args.frame_id:04d}.png"
+        )
+        make_single_frame_figure(
+            frame_data=frame,
+            img_path=img_path,
+            measurement=measurement,
+            scene_description=scene_desc,
+            save_path=save_path,
+        )
+        print(f"[✓] 保存到: {save_path}")
+        return
+
+    # ── 模式二：从 waypoints_json 读取（原来的逻辑）──
+    if args.waypoints_json is None:
+        print("[!] 请提供 --waypoints_json 或 --route_dir")
+        return
+
     frames = load_waypoints(args.waypoints_json)
     if args.frame_id >= len(frames):
         print(f"[!] frame_id {args.frame_id} 超出范围（共 {len(frames)} 帧）")
@@ -397,17 +514,10 @@ def main():
     frame = frames[args.frame_id]
     print(f"[i] 处理帧 #{frame['frame_id']}，路径: {frame['path'][-60:]}")
 
-    # 找到图像
     route_dir = get_route_dir(frame['path'])
     img_path  = find_frame_image(route_dir)
-    print(f"[i] 图像路径: {img_path}")
+    measurement = load_measurement(route_dir, img_path) if img_path else None
 
-    # 加载 measurement
-    measurement = None
-    if img_path:
-        measurement = load_measurement(route_dir, img_path)
-
-    # 生成场景描述
     if args.no_llm:
         scene_desc = "（已跳过语言描述生成，使用 --no_llm 标志）"
     elif img_path and img_path.exists():
@@ -417,7 +527,6 @@ def main():
 
     print(f"[i] 场景描述: {scene_desc}")
 
-    # 生成可视化
     save_path = os.path.join(
         args.output, f"frame_{args.frame_id:04d}_analysis.png"
     )
@@ -429,7 +538,6 @@ def main():
         save_path=save_path,
     )
 
-    # 同时打印数值
     pred = np.array(frame['route_pred'])
     gt   = np.array(frame['route_gt'])
     n    = min(len(pred), len(gt))
@@ -445,7 +553,6 @@ def main():
         print(f"  导航命令: {COMMAND_MAP.get(cmd, cmd)}")
     print(f"  场景描述: {scene_desc[:100]}...")
     print(f"{'='*50}")
-
 
 if __name__ == '__main__':
     main()
