@@ -53,7 +53,7 @@ pip install flash-attn==2.7.0.post2
 
 ```bash
 # 克隆本仓库
-git clone https://github.com/YOUR_USERNAME/simlingo-openloop-eval.git
+git clone https://github.com/lazysmoon/simlingo-openloop-eval.git
 
 # 进入 simlingo 目录，应用所有 patch
 cd simlingo
