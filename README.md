@@ -56,7 +56,7 @@ SimLingo 是 CARLA 2024 自动驾驶挑战赛冠军模型，基于 InternVL2-1B 
 | 夸克网盘 | `链接: https://pan.quark.cn/s/e7ada8448ed7 |
 
 下载文件：
-- `simlingo311_packed.tar.gz`（约 6.6GB）— conda 环境压缩包
+- `simlingo_packed.tar.gz`（约 6.6GB）— conda 环境压缩包
 - `install_env.sh` — 一键安装脚本
 
 **安装步骤**：
@@ -72,7 +72,7 @@ bash install_env.sh /path/to/miniconda3
 
 安装完成后：
 ```bash
-conda activate simlingo311
+conda activate simlingo
 export CUDA_HOME=$CONDA_PREFIX
 export HF_ENDPOINT=https://hf-mirror.com
 
@@ -107,8 +107,8 @@ RTX 5070/5080/5090 需要 PyTorch ≥ 2.6.0 + CUDA 12.8 + Python ≥ 3.10，原�
 
 ```bash
 # 1. 新建 Python 3.11 环境
-conda create -n simlingo311 python=3.11 -y
-conda activate simlingo311
+conda create -n simlingo python=3.11 -y
+conda activate simlingo
 
 # 2. 安装支持 sm_120 的 PyTorch
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
