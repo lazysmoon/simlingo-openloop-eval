@@ -1,12 +1,12 @@
 """
 SimLingo 单帧完整可视化
 ========================
-对指定帧生成：
-  - 左上：前向摄像头图像
-  - 右上：路点预测 vs GT 对比图
-  - 下方：InternVL2 对场景的语言描述
+对指定帧生成:
+  - 左上:前向摄像头图像
+  - 右上:路点预测 vs GT 对比图
+  - 下方:InternVL2 对场景的语言描述
 
-用法：
+用法:
     cd ~/Document/python_code/VLA/simlingo
     conda activate simlingo
 
@@ -29,9 +29,9 @@ import matplotlib
 from matplotlib import font_manager
 
 # 定义系统中的中文字体路径
-font_path = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
+font_path = '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'
 
-# 备用字体路径（可根据实际环境添加）
+# 备用字体路径（可根据实际环境添加)
 fallback_paths = [
     '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
     '/usr/share/fonts/wqy-microhei/wqy-microhei.ttc'
@@ -134,7 +134,7 @@ SCENE_PROMPT = (
 #     """用 InternVL2-1B 生成场景描述"""
 #     print("[i] 加载 InternVL2-1B 生成场景描述...")
 #     try:
-#         model_name = "OpenGVLab/InternVL2-1B"
+#         model_name = "/opt/users/cyl/models/InternVL2-1B"
 #         cache_dir = "simlingo_training/pretrained/InternVL2-1B"
 
 #         processor = AutoProcessor.from_pretrained(
@@ -193,7 +193,7 @@ def generate_scene_description(img_path: Path, device='cuda') -> str:
         import torchvision.transforms as T
         from torchvision.transforms.functional import InterpolationMode
 
-        model_name = "OpenGVLab/InternVL2-1B"
+        model_name = "/opt/users/cyl/models/InternVL2-1B"
         cache_dir = "simlingo_training/pretrained/InternVL2-1B"
 
         tokenizer = AutoTokenizer.from_pretrained(
@@ -282,7 +282,7 @@ def make_single_frame_figure(
         height_ratios=[2.5, 1],
     )
 
-    # ── 左上：摄像头图像 ────────────────────────────────────
+    # ── 左上:摄像头图像 ────────────────────────────────────
     ax_img = fig.add_subplot(gs[0, 0])
     if img_path and img_path.exists():
         img = Image.open(img_path).convert('RGB')
@@ -303,7 +303,7 @@ def make_single_frame_figure(
     else:
         ax_img.set_title(f"帧 #{frame_data['frame_id']}", fontsize=11)
 
-    # ── 右上：路点预测对比 ──────────────────────────────────
+    # ── 右上:路点预测对比 ──────────────────────────────────
     ax_wp = fig.add_subplot(gs[0, 1])
     ade, fde = plot_waypoints(
         ax_wp,
@@ -312,7 +312,7 @@ def make_single_frame_figure(
         title="路径路点预测 vs GT"
     )
 
-    # ── 下方左：速度路点对比 ────────────────────────────────
+    # ── 下方左:速度路点对比 ────────────────────────────────
     ax_sp = fig.add_subplot(gs[1, 0])
     sp_pred = np.array(frame_data['speed_wp_pred'])
     sp_gt   = np.array(frame_data['speed_wp_gt'])
@@ -333,7 +333,7 @@ def make_single_frame_figure(
     ax_sp.legend(fontsize=9)
     ax_sp.grid(True, alpha=0.3)
 
-    # ── 下方右：场景描述文字框 ──────────────────────────────
+    # ── 下方右:场景描述文字框 ──────────────────────────────
     ax_txt = fig.add_subplot(gs[1, 1])
     ax_txt.axis('off')
 
@@ -457,7 +457,7 @@ def main():
     parser.add_argument('--device', default='cuda')
     args = parser.parse_args()
 
-    # ── 模式一：直接指定路线目录（不需要 waypoints_json）──
+    # ── 模式一:直接指定路线目录（不需要 waypoints_json）──
     if args.route_dir:
         route_dir = Path(args.route_dir)
         img_path = find_frame_image(route_dir, args.frame_id)
@@ -501,7 +501,7 @@ def main():
         print(f"[✓] 保存到: {save_path}")
         return
 
-    # ── 模式二：从 waypoints_json 读取（原来的逻辑）──
+    # ── 模式二:从 waypoints_json 读取（原来的逻辑）──
     if args.waypoints_json is None:
         print("[!] 请提供 --waypoints_json 或 --route_dir")
         return

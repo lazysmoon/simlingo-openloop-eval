@@ -1,12 +1,12 @@
 """
 SimLingo 开环评估可视化脚本
 ============================
-读取 per_frame_waypoints_rank_0.json，生成：
-1. 单帧路点对比图（预测 vs GT）
+读取 per_frame_waypoints_rank_0.json,生成:
+1. 单帧路点对比图（预测 vs GT)
 2. 多帧 ADE/FDE 分布图
 3. 所有帧的汇总 HTML 报告
 
-用法：
+用法:
     cd ~/Document/python_code/VLA/simlingo
     python visualize_open_loop.py \
         --data simlingo_training/outputs/OpenGVLab/InternVL2-1B/predictions/per_frame_waypoints_rank_0.json \
@@ -31,9 +31,9 @@ import matplotlib
 from matplotlib import font_manager
 
 # 定义系统中的中文字体路径
-font_path = '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc'
+font_path = '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'
 
-# 备用字体路径（可根据实际环境添加）
+# 备用字体路径（可根据实际环境添加)
 fallback_paths = [
     '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
     '/usr/share/fonts/wqy-microhei/wqy-microhei.ttc'
@@ -56,7 +56,7 @@ if valid_font_path:
     matplotlib.rcParams['font.family'] = prop.get_name()
     print(f"[i] 成功加载中文字体: {prop.get_name()} ({valid_font_path})")
 else:
-    print("[!] 警告: 未找到指定的中文字体文件，图片可能出现乱码。")
+    print("[!] 警告: 未找到指定的中文字体文件,图片可能出现乱码。")
 
 matplotlib.rcParams['axes.unicode_minus'] = False
 matplotlib.use('Agg')
@@ -102,7 +102,7 @@ def plot_single_frame(frame, ax, title=""):
     # 起点标记
     ax.scatter([0], [0], s=120, color='#3498db', zorder=5, marker='*', label='自车位置')
 
-    # 误差连线（每隔5个点画一条）
+    # 误差连线（每隔5个点画一条)
     for i in range(0, min(len(pred), len(gt)), 5):
         ax.plot([gt[i, 1], pred[i, 1]], [gt[i, 0], pred[i, 0]],
                 color='gray', linewidth=0.8, alpha=0.5, zorder=2)
