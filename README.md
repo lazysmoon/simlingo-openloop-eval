@@ -41,6 +41,31 @@ SimLingo 是 CARLA 2024 自动驾驶挑战赛冠军模型，基于 InternVL2-1B 
 
 ---
 
+## 前置：安装 Miniconda
+
+> 如果服务器上已有 `conda`（运行 `conda --version` 有输出），跳过此步骤。
+
+服务器通常**不允许写入 `/home`**，需要将 Miniconda 安装到自己的工作目录 `$WORK`：
+
+```bash
+# 下载 Miniconda 安装脚本
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+
+# 安装到 $WORK 下（⚠️ 不要装到 /home！）
+bash Miniconda3-latest-Linux-x86_64.sh -b -p $WORK/miniconda3
+
+# 初始化并刷新 shell
+$WORK/miniconda3/bin/conda init bash
+source ~/.bashrc
+
+# 验证
+conda --version
+```
+
+> 后续所有 `conda` 命令均在此环境下执行。
+
+---
+
 ## 环境安装
 
 提供两种方式，任选其一：
@@ -234,8 +259,8 @@ python3 -c "
 import os, subprocess, sys, shutil
 
 # ── 可按需修改的路径配置 ──────────────────────────────────────────────────
-SERVER_SIMLINGO_DATA = '/data/datasets/database/simlingo'              # 服务器上已解压的 simlingo 数据目录
-SERVER_BUCKETS       = '/data/datasets/database/bucketsv2_simlingo'    # 服务器上 buckets 目录
+SERVER_SIMLINGO_DATA = '/data/datasets/simlingo'              # 服务器上已解压的 simlingo 数据目录
+SERVER_BUCKETS       = '/data/datasets/bucketsv2_simlingo'    # 服务器上 buckets 目录
 LOCAL_SIMLINGO_DATA  = './database/simlingo'                 # 本地目标路径
 LOCAL_BUCKETS        = './database/bucketsv2_simlingo'       # 本地目标路径
 
