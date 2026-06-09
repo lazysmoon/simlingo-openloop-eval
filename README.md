@@ -28,7 +28,7 @@ SimLingo 是 CARLA 2024 自动驾驶挑战赛冠军模型，基于 InternVL2-1B 
 | 用途 | 最低显存 | 备注 |
 |------|----------|------|
 | 开环评估（推理） | 4GB（RTX 4060 可用） | 无需 CARLA |
-| 闭环评估（CARLA） | 12GB（需要 RTX 4070s 以上） | 需要启动 CARLA |
+| 闭环评估（CARLA） | 16GB（需要 RTX 4080 以上） | 需要启动 CARLA |
 
 ### GPU 架构兼容性
 
@@ -74,11 +74,19 @@ conda --version
 
 已配置好 Python 3.11 + PyTorch 2.11 + CUDA 12.8 的完整 conda 环境，**支持所有 GPU 架构（包括 RTX 50 系列）**。
 
-**下载地址**：
+**获取压缩包（二选一）**：
+
+**① 服务器用户（推荐）**：压缩包已预置在公共目录，直接复制即可，无需下载：
+
+```bash
+cp /opt/models/simlingo_packed.tar.gz $WORK/
+```
+
+**② 本地/外网用户**：从网盘下载：
 
 | 平台 | 链接 |
 |------|------|
-| 夸克网盘 | `链接: [https://pan.quark.cn/s/661275bacd53] |
+| 夸克网盘 | https://pan.quark.cn/s/661275bacd53 |
 
 下载文件：
 - `simlingo_packed.tar.gz`（约 6.6GB）— conda 环境压缩包
@@ -87,12 +95,12 @@ conda --version
 **安装步骤**：
 
 ```bash
-# 确保已安装 miniconda 或 anaconda
-# 将下载的两个文件放在同一目录下，然后执行：
+# 确保已安装 miniconda（见上方「前置：安装 Miniconda」）
+# 将 simlingo_packed.tar.gz 和 install_env.sh 放在同一目录下，然后执行：
 bash install_env.sh
 
 # 如果 conda 路径未自动检测到，手动指定：
-bash install_env.sh /path/to/miniconda3
+bash install_env.sh $WORK/miniconda3
 ```
 
 安装完成后：
@@ -539,7 +547,7 @@ Python 3.11 下安装：`pip install carla==0.9.16`
 
 **Q: CUDA out of memory**
 
-闭环评估 CARLA 会占用约 5.7GB 显存，总显存不足 12GB 会 OOM。开环评估无需 CARLA，4GB 显存即可。
+闭环评估 CARLA 会占用约 5.7GB 显存，总显存不足 16GB 会 OOM。开环评估无需 CARLA，4GB 显存即可。
 
 **Q: `get_original_cwd()` 报错**
 
