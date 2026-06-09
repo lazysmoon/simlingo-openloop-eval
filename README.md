@@ -228,6 +228,8 @@ cd simlingo_training
 ln -sf ../database database
 ln -sf ../data data
 ln -sf ../checkpoints/simlingo/.hydra .hydra
+mkdir -p checkpoints
+ln -sf /opt/models/checkpoints/simlingo checkpoints/simlingo  #在服务器下因为已经在公共目录有模型权重文件了 不需要下载 直接建立软链接即可
 ```
 
 ### 5. 运行开环评估
