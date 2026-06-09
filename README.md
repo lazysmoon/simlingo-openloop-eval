@@ -181,9 +181,9 @@ export HF_ENDPOINT=https://hf-mirror.com
 # 下载 SimLingo checkpoint（约 3.2GB）
 python download_model.py  #服务器运行不需要执行该指令！！！
 
-# 下载 InternVL2-1B 基础模型（约 1.9GB） #服务器运行不需要执行该指令！！！
+# 下载 InternVL2-1B 基础模型（约 1.9GB）
 # ⚠️ 这一步很关键！代码运行时会加载此模型
-huggingface-cli download OpenGVLab/InternVL2-1B --local-dir ./models/InternVL2-1B   
+huggingface-cli download OpenGVLab/InternVL2-1B --local-dir ./models/InternVL2-1B   #服务器运行不需要执行该指令！！！
 ```
 
 ### 3. 下载验证集数据
