@@ -173,7 +173,7 @@ cp ../simlingo-openloop-eval/visualize_single_frame.py .
 cp ../simlingo-openloop-eval/requirements.txt .
 ```
 
-### 2. 下载模型权重和 InternVL2-1B  方式一搭建环境不需要下载 服务器里面已经下载好了！！！
+### 2. 下载模型权重和 InternVL2-1B   ！！！方式一搭建环境不需要下载 服务器里面已经下载好了！！！
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
