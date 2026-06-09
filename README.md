@@ -173,17 +173,17 @@ cp ../simlingo-openloop-eval/visualize_single_frame.py .
 cp ../simlingo-openloop-eval/requirements.txt .
 ```
 
-### 2. 下载模型权重和 InternVL2-1B
+### 2. 下载模型权重和 InternVL2-1B  方式一搭建环境不需要下载 服务器里面已经下载好了！！！
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
 
 # 下载 SimLingo checkpoint（约 3.2GB）
-python download_model.py
+python download_model.py  #服务器运行不需要执行该指令！！！
 
-# 下载 InternVL2-1B 基础模型（约 1.9GB）
+# 下载 InternVL2-1B 基础模型（约 1.9GB） #服务器运行不需要执行该指令！！！
 # ⚠️ 这一步很关键！代码运行时会加载此模型
-huggingface-cli download OpenGVLab/InternVL2-1B --local-dir ./models/InternVL2-1B
+huggingface-cli download OpenGVLab/InternVL2-1B --local-dir ./models/InternVL2-1B   
 ```
 
 ### 3. 下载验证集数据
