@@ -53,7 +53,7 @@ SimLingo 是 CARLA 2024 自动驾驶挑战赛冠军模型，基于 InternVL2-1B 
 
 | 平台 | 链接 |
 |------|------|
-| 夸克网盘 | `链接: https://pan.quark.cn/s/e7ada8448ed7 |
+| 夸克网盘 | `链接: [https://pan.quark.cn/s/661275bacd53] |
 
 下载文件：
 - `simlingo_packed.tar.gz`（约 6.6GB）— conda 环境压缩包
