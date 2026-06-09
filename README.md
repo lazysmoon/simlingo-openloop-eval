@@ -173,66 +173,172 @@ cp ../simlingo-openloop-eval/visualize_single_frame.py .
 cp ../simlingo-openloop-eval/requirements.txt .
 ```
 
-### 2. 下载模型权重和 InternVL2-1B   ！！！方式一搭建环境不需要下载 服务器里面已经下载好了！！！
+### 2. 获取模型权重和 InternVL2-1B
+
+> **服务器用户**：权重已预置在公共目录，脚本会自动检测并跳过下载，直接建立软链接。
+> **本地用户**：若本地不存在权重，脚本会自动从 HuggingFace 下载。
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
+cd simlingo
+python3 -c "
+import os, subprocess, sys
 
-# 下载 SimLingo checkpoint（约 3.2GB）
-python download_model.py  #服务器运行不需要执行该指令！！！
+# ── 可按需修改的路径配置 ──────────────────────────────────────────────────
+SERVER_SIMLINGO_CKPT = '/opt/models/checkpoints/simlingo'   # 服务器上 SimLingo 权重目录
+SERVER_INTERNVL2     = '/opt/models/InternVL2-1B'           # 服务器上 InternVL2-1B 目录
+LOCAL_SIMLINGO_CKPT  = './checkpoints/simlingo'             # 本地目标路径（软链接 or 下载目录）
+LOCAL_INTERNVL2      = './models/InternVL2-1B'              # 本地目标路径（软链接 or 下载目录）
+# ─────────────────────────────────────────────────────────────────────────
 
-# 下载 InternVL2-1B 基础模型（约 1.9GB）
-# ⚠️ 这一步很关键！代码运行时会加载此模型
-huggingface-cli download OpenGVLab/InternVL2-1B --local-dir ./models/InternVL2-1B   #服务器运行不需要执行该指令！！！
+def ensure(server_path, local_path, download_fn):
+    if os.path.exists(local_path):
+        print(f'[skip] 已存在: {local_path}')
+        return
+    if os.path.exists(server_path):
+        parent = os.path.dirname(os.path.abspath(local_path))
+        os.makedirs(parent, exist_ok=True)
+        os.symlink(os.path.abspath(server_path), local_path)
+        print(f'[link] {local_path} -> {server_path}')
+    else:
+        print(f'[download] 本地及服务器均未找到，开始下载到 {local_path} ...')
+        download_fn(local_path)
+
+# SimLingo checkpoint
+def dl_simlingo(local_path):
+    subprocess.check_call([sys.executable, 'download_model.py'])
+
+# InternVL2-1B
+def dl_internvl2(local_path):
+    subprocess.check_call([
+        'huggingface-cli', 'download',
+        'OpenGVLab/InternVL2-1B',
+        '--local-dir', local_path
+    ])
+
+ensure(SERVER_SIMLINGO_CKPT, LOCAL_SIMLINGO_CKPT, dl_simlingo)
+ensure(SERVER_INTERNVL2,     LOCAL_INTERNVL2,     dl_internvl2)
+print('完成。')
+"
 ```
 
-### 3. 下载验证集数据
+### 3. 获取验证集数据
+
+> **服务器用户**：数据集已预置在公共目录，脚本会自动检测并跳过下载，直接建立软链接。
+> **本地用户**：若本地不存在数据，脚本会自动从 HuggingFace 下载并解压。
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
 
-# 下载一个 chunk 即可
 python3 -c "
-from huggingface_hub import hf_hub_download
-hf_hub_download(
-    repo_id='RenzKa/simlingo',
-    repo_type='dataset',
-    filename='data_simlingo_validation_3_scenarios_routes_validation_random_weather_seed_4_balanced_100_chunk_015.tar.gz',
-    local_dir='./database'
-)
-"
-mkdir -p database/simlingo
-tar -xzf database/data_simlingo_validation_3_scenarios_routes_validation_random_weather_seed_4_balanced_100_chunk_015.tar.gz \
-    -C database/simlingo/
+import os, subprocess, sys, shutil
 
-# 下载 buckets 文件
-python3 -c "
-from huggingface_hub import hf_hub_download
-hf_hub_download(
-    repo_id='RenzKa/simlingo',
-    repo_type='dataset',
-    filename='buckets_paths.pkl',
-    local_dir='./database'
-)
+# ── 可按需修改的路径配置 ──────────────────────────────────────────────────
+SERVER_SIMLINGO_DATA = '/data/datasets/database/simlingo'              # 服务器上已解压的 simlingo 数据目录
+SERVER_BUCKETS       = '/data/datasets/database/bucketsv2_simlingo'    # 服务器上 buckets 目录
+LOCAL_SIMLINGO_DATA  = './database/simlingo'                 # 本地目标路径
+LOCAL_BUCKETS        = './database/bucketsv2_simlingo'       # 本地目标路径
+
+CHUNK_FILENAME = 'data_simlingo_validation_3_scenarios_routes_validation_random_weather_seed_4_balanced_100_chunk_015.tar.gz'
+# ─────────────────────────────────────────────────────────────────────────
+
+def ensure_dir(server_path, local_path, download_fn):
+    if os.path.exists(local_path):
+        print(f'[skip] 已存在: {local_path}')
+        return
+    if os.path.exists(server_path):
+        parent = os.path.dirname(os.path.abspath(local_path))
+        os.makedirs(parent, exist_ok=True)
+        os.symlink(os.path.abspath(server_path), local_path)
+        print(f'[link] {local_path} -> {server_path}')
+    else:
+        print(f'[download] 本地及服务器均未找到，开始下载到 {local_path} ...')
+        download_fn(local_path)
+
+# chunk 数据下载 + 解压
+def dl_chunk(local_path):
+    from huggingface_hub import hf_hub_download
+    os.makedirs('./database', exist_ok=True)
+    gz = hf_hub_download(
+        repo_id='RenzKa/simlingo', repo_type='dataset',
+        filename=CHUNK_FILENAME, local_dir='./database'
+    )
+    os.makedirs(local_path, exist_ok=True)
+    print(f'[extract] 解压 {gz} -> {local_path}')
+    subprocess.check_call(['tar', '-xzf', gz, '-C', local_path])
+
+# buckets 下载
+def dl_buckets(local_path):
+    from huggingface_hub import hf_hub_download
+    os.makedirs('./database', exist_ok=True)
+    pkl = hf_hub_download(
+        repo_id='RenzKa/simlingo', repo_type='dataset',
+        filename='buckets_paths.pkl', local_dir='./database'
+    )
+    os.makedirs(local_path, exist_ok=True)
+    dst = os.path.join(local_path, 'buckets_paths.pkl')
+    shutil.copy(pkl, dst)
+    print(f'[copy] {pkl} -> {dst}')
+
+ensure_dir(SERVER_SIMLINGO_DATA, LOCAL_SIMLINGO_DATA, dl_chunk)
+ensure_dir(SERVER_BUCKETS,       LOCAL_BUCKETS,       dl_buckets)
+print('完成。')
 "
-mkdir -p database/bucketsv2_simlingo
-cp database/buckets_paths.pkl database/bucketsv2_simlingo/
 ```
 
 ### 4. 配置路径
 
 ```bash
-cd simlingo
-mkdir -p checkpoints
 cd simlingo_training
 
 # 建立软链接
 ln -sf ../database database
 ln -sf ../data data
 ln -sf ../checkpoints/simlingo/.hydra .hydra
-
-ln -sf /opt/models/checkpoints/simlingo checkpoints/simlingo  #在服务器下因为已经在公共目录有模型权重文件了 不需要下载 直接建立软链接即可
 ```
+
+#### 4.1 修改 simlingo_seed1.yaml 中的模型路径
+
+`config/experiment/simlingo_seed1.yaml` 中默认使用 HuggingFace 远程仓库名：
+
+```yaml
+model:
+  language_model:
+    variant: 'OpenGVLab/InternVL2-1B'
+  vision_model:
+    variant: 'OpenGVLab/InternVL2-1B'
+```
+
+**需要将其替换为本地实际路径**（步骤 2 中已下载或软链接到 `./models/InternVL2-1B`）：
+
+```bash
+# 方式一：自动替换（推荐）
+# 在 simlingo_training/ 目录下执行：
+INTERNVL2_LOCAL_PATH="$(cd .. && pwd)/models/InternVL2-1B"
+
+sed -i "s|'OpenGVLab/InternVL2-1B'|'${INTERNVL2_LOCAL_PATH}'|g" \
+    config/experiment/simlingo_seed1.yaml
+
+# 验证替换结果
+grep "variant" config/experiment/simlingo_seed1.yaml
+```
+
+```bash
+# 方式二：手动编辑
+# 将 config/experiment/simlingo_seed1.yaml 中两处 variant 改为本地路径：
+#
+#   language_model:
+#     variant: '/your/abs/path/to/models/InternVL2-1B'   ← 改这里
+#   vision_model:
+#     variant: '/your/abs/path/to/models/InternVL2-1B'   ← 改这里
+```
+
+> ⚠️ 必须使用**绝对路径**，相对路径会因 Hydra 改变工作目录而失效。
+>
+> ⚠️ 替换后，评估结果的输出目录名会从 `OpenGVLab/InternVL2-1B/` 变为本地路径末段目录名（如 `InternVL2-1B/`）。可用以下命令查找结果文件：
+> ```bash
+> find . -name "per_frame_waypoints_rank_0.json" 2>/dev/null
+> ```
 
 ### 5. 运行开环评估
 
