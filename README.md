@@ -86,7 +86,7 @@ cp /opt/models/simlingo_packed.tar.gz $WORK/
 
 | 平台 | 链接 |
 |------|------|
-| 夸克网盘 | https://pan.quark.cn/s/661275bacd53 |
+| 北航网盘 | https://bhpan.buaa.edu.cn/link/AR67FF6364630D44EDA90C6D05B75AA8F5 |
 
 下载文件：
 - `simlingo_packed.tar.gz`（约 6.6GB）— conda 环境压缩包
