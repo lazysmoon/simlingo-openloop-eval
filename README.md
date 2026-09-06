@@ -1,160 +1,161 @@
-# SimLingo 开环评估
+# SimLingo Open-Loop Evaluation
 
-基于 [SimLingo (CVPR 2025 Spotlight)](https://github.com/RenzKa/simlingo) 的开环评估框架，支持在单张消费级显卡上完成评估，无需启动 CARLA 仿真器。
+An open-loop evaluation framework based on [SimLingo (CVPR 2025 Spotlight)](https://github.com/RenzKa/simlingo). It supports evaluation on a single consumer-grade GPU without launching the CARLA simulator.
 
-## 项目背景
+## Project Background
 
-SimLingo 是 CARLA 2024 自动驾驶挑战赛冠军模型，基于 InternVL2-1B + Qwen2-0.5B 构建，仅使用摄像头输入，直接输出路径路点和速度路点。
+SimLingo is the winning model of the CARLA 2024 Autonomous Driving Challenge. It is built on InternVL2-1B + Qwen2-0.5B, uses camera input only, and directly outputs route waypoints and speed waypoints.
 
-本仓库在 SimLingo 原始训练框架基础上：
+Based on the original SimLingo training framework, this repository:
 
-- 添加了**开环评估脚本**（不需要启动 CARLA，直接在离线数据集上评估）
-- 添加了**可视化脚本**（ADE/FDE 分布图、单帧完整分析图）
-- 修复了若干本地单机运行的兼容性问题
-- 提供了 patch 文件，方便应用到原始仓库
+- Adds an **open-loop evaluation script** (no CARLA required; evaluation is performed directly on an offline dataset)
+- Adds **visualization scripts** (ADE/FDE distribution plots and complete single-frame analysis plots)
+- Fixes several compatibility issues for local single-machine execution
+- Provides patch files that can be conveniently applied to the original repository
 
-## 评估结果
+## Evaluation Results
 
-在 SimLingo 验证集（chunk_015，160帧）上的开环评估结果：
+Open-loop evaluation results on the SimLingo validation set (chunk_015, 160 frames):
 
-| 指标 | 数值 |
-|------|------|
-| ADE (路径路点) | 0.0618 m |
-| FDE (路径路点) | 0.1699 m |
-| 评估帧数 | 160 |
+| Metric | Value |
+|--------|-------|
+| ADE (route waypoints) | 0.0618 m |
+| FDE (route waypoints) | 0.1699 m |
+| Number of evaluated frames | 160 |
 
-## 硬件要求
+## Hardware Requirements
 
-| 用途 | 最低显存 | 备注 |
-|------|----------|------|
-| 开环评估（推理） | 4GB（RTX 4060 可用） | 无需 CARLA |
-| 闭环评估（CARLA） | 16GB（需要 RTX 4080 以上） | 需要启动 CARLA |
+| Use Case | Minimum VRAM | Notes |
+|----------|--------------|-------|
+| Open-loop evaluation (inference) | 4GB (RTX 4060 supported) | CARLA not required |
+| Closed-loop evaluation (CARLA) | 16GB (RTX 4080 or above required) | CARLA must be launched |
 
-### GPU 架构兼容性
+### GPU Architecture Compatibility
 
-| GPU | 架构 | 计算能力 | 环境要求 |
-|-----|------|----------|----------|
-| RTX 4060/4070/4090 | Ada Lovelace | sm_89 | 方式一/方式二均可 ✅ |
-| RTX 5070/5080/5090 | Blackwell | sm_120 | **必须使用方式一**（Python 3.11 + PyTorch ≥ 2.6） ⚠️ |
-| H100/H200 | Hopper | sm_90 | 方式一/方式二均可 ✅ |
-| B100/B200 | Blackwell | sm_120 | **必须使用方式一** ⚠️ |
+| GPU | Architecture | Compute Capability | Environment Requirement |
+|-----|--------------|--------------------|-------------------------|
+| RTX 4060/4070/4090 | Ada Lovelace | sm_89 | Both Method 1 and Method 2 are supported ✅ |
+| RTX 5070/5080/5090 | Blackwell | sm_120 | **Method 1 is required** (Python 3.11 + PyTorch ≥ 2.6) ⚠️ |
+| H100/H200 | Hopper | sm_90 | Both Method 1 and Method 2 are supported ✅ |
+| B100/B200 | Blackwell | sm_120 | **Method 1 is required** ⚠️ |
 
 ---
 
-## 前置：安装 Miniconda
+## Prerequisite: Install Miniconda
 
-> 如果服务器上已有 `conda`（运行 `conda --version` 有输出），跳过此步骤。
+> If `conda` is already installed on the server (`conda --version` returns a valid result), skip this step.
 
-服务器通常**不允许写入 `/home`**，需要将 Miniconda 安装到自己的工作目录 `$WORK`：
+Servers often **do not allow writing to `/home`**, so Miniconda should be installed in your own working directory `$WORK`:
 
 ```bash
-# 下载 Miniconda 安装脚本
+# Download the Miniconda installer
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 
-# 安装到 $WORK 下（⚠️ 不要装到 /home！）
+# Install under $WORK (⚠️ Do not install it under /home!)
 bash Miniconda3-latest-Linux-x86_64.sh -b -p $WORK/miniconda3
 
-# 初始化并刷新 shell
+# Initialize Conda and reload the shell
 $WORK/miniconda3/bin/conda init bash
 source ~/.bashrc
 
-# 验证
+# Verify the installation
 conda --version
 ```
 
-> 后续所有 `conda` 命令均在此环境下执行。
+> All subsequent `conda` commands should be executed in this environment.
 
 ---
 
-## 环境安装
+## Environment Installation
 
-提供两种方式，任选其一：
+Two installation methods are provided. Choose either one:
 
-### 方式一（推荐）：直接拷贝预配置环境
+### Method 1 (Recommended): Copy the Preconfigured Environment
 
-已配置好 Python 3.11 + PyTorch 2.11 + CUDA 12.8 的完整 conda 环境，**支持所有 GPU 架构（包括 RTX 50 系列）**。
+A complete Conda environment with Python 3.11 + PyTorch 2.11 + CUDA 12.8 has already been configured. It **supports all GPU architectures, including the RTX 50 series**.
 
-**获取压缩包（二选一）**：
+**Obtain the archive using one of the following options:**
 
-**① 服务器用户（推荐）**：压缩包已预置在公共目录，直接复制即可，无需下载：
+**1. Server users (recommended):** The archive is already available in a shared directory. Simply copy it; no download is required:
 
 ```bash
 cp /opt/models/simlingo_packed.tar.gz $WORK/
 ```
 
-**② 本地/外网用户**：从网盘下载：
+**2. Local/external-network users:** Download it from the cloud drive:
 
-| 平台 | 链接 |
-|------|------|
-| 北航网盘 | [https://bhpan.buaa.edu.cn/link/AAEB1B9E8FDD754BD99ECBDD0A00173B9D] |
+| Platform | Link |
+|----------|------|
+| BUAA Cloud Drive | [https://bhpan.buaa.edu.cn/link/AAEB1B9E8FDD754BD99ECBDD0A00173B9D] |
 
-下载文件：
-- `simlingo_packed.tar.gz`（约 6.6GB）— conda 环境压缩包
-- `install_env.sh` — 一键安装脚本
+Download the following files:
+- `simlingo_packed.tar.gz` (approximately 6.6GB) — Conda environment archive
+- `install_env.sh` — one-click installation script
 
-**安装步骤**：
+**Installation steps:**
 
 ```bash
-# 确保已安装 miniconda（见上方「前置：安装 Miniconda」）
-# 将 simlingo_packed.tar.gz 和 install_env.sh 放在同一目录下，然后执行：
+# Make sure Miniconda is installed (see "Prerequisite: Install Miniconda" above)
+# Place simlingo_packed.tar.gz and install_env.sh in the same directory, then run:
 bash install_env.sh
 
-# 如果 conda 路径未自动检测到，手动指定：
+# If the Conda path is not detected automatically, specify it manually:
 bash install_env.sh $WORK/miniconda3
 ```
 
-安装完成后：
+After installation:
+
 ```bash
 conda activate simlingo
 export CUDA_HOME=$CONDA_PREFIX
 export HF_ENDPOINT=https://hf-mirror.com
 
-# 验证
+# Verify
 python -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
 ```
 
-### 方式二：从零搭建环境
+### Method 2: Build the Environment from Scratch
 
-适用于 Ada Lovelace 及更早架构的 GPU（RTX 40 系列及以下）。
+This method is suitable for Ada Lovelace and earlier GPU architectures (RTX 40 series and below).
 
 ```bash
-# 1. 克隆原始 SimLingo 仓库
+# 1. Clone the original SimLingo repository
 git clone https://github.com/RenzKa/simlingo.git
 cd simlingo
 chmod +x setup_carla.sh
 ./setup_carla.sh
 
-# 2. 创建 conda 环境
+# 2. Create the Conda environment
 conda env create -f environment.yaml
 conda activate simlingo
 
-# 3. 安装 PyTorch
+# 3. Install PyTorch
 pip install torch==2.2.0 torchvision --index-url https://download.pytorch.org/whl/cu121
 pip install flash-attn==2.7.0.post2
 ```
 
 <details>
-<summary><b>如果你使用 RTX 50 系列（Blackwell 架构），点击展开手动搭建步骤</b></summary>
+<summary><b>If you are using an RTX 50-series GPU (Blackwell architecture), click to expand the manual setup steps</b></summary>
 
-RTX 5070/5080/5090 需要 PyTorch ≥ 2.6.0 + CUDA 12.8 + Python ≥ 3.10，原始 environment.yaml 不兼容。
+RTX 5070/5080/5090 requires PyTorch ≥ 2.6.0 + CUDA 12.8 + Python ≥ 3.10. The original `environment.yaml` is not compatible.
 
 ```bash
-# 1. 新建 Python 3.11 环境
+# 1. Create a new Python 3.11 environment
 conda create -n simlingo python=3.11 -y
 conda activate simlingo
 
-# 2. 安装支持 sm_120 的 PyTorch
+# 2. Install PyTorch with sm_120 support
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
-# 3. 安装 CUDA Toolkit 和 cuDNN
+# 3. Install CUDA Toolkit and cuDNN
 conda install -c nvidia cuda-toolkit -y
 pip install nvidia-cudnn-cu12
 export CUDA_HOME=$CONDA_PREFIX
 
-# 4. 安装项目依赖（使用仓库提供的 requirements 文件）
+# 4. Install project dependencies using the requirements file provided by this repository
 pip install -r requirements.txt
 
-# 5. 如果有包安装失败，逐个跳过再补装：
+# 5. If some packages fail to install, skip them temporarily and install them separately:
 #    pip install opencv-python shapely numpy carla==0.9.16
 ```
 
@@ -162,20 +163,20 @@ pip install -r requirements.txt
 
 ---
 
-## 设置 CUDA 环境变量
+## Set CUDA Environment Variables
 
-**无论使用哪种安装方式，都需要设置以下环境变量**，否则 DeepSpeed 会报 `CUDA_HOME does not exist`：
+**Regardless of which installation method you use, the following environment variables must be set.** Otherwise, DeepSpeed will report `CUDA_HOME does not exist`:
 
 ```bash
-# 设置 CUDA_HOME
+# Set CUDA_HOME
 export CUDA_HOME=$CONDA_PREFIX
-# 或者根据 nvcc 路径设置：
+# Or set it according to the nvcc path:
 # export CUDA_HOME=$(dirname $(dirname $(which nvcc)))
 
-# 设置 HuggingFace 镜像（国内网络必需）
+# Set the HuggingFace mirror endpoint (required for networks in Mainland China)
 export HF_ENDPOINT=https://hf-mirror.com
 
-# 建议写入 .bashrc 永久生效
+# Recommended: add the settings to .bashrc so they take effect permanently
 echo 'export CUDA_HOME=$CONDA_PREFIX' >> ~/.bashrc
 echo 'export HF_ENDPOINT=https://hf-mirror.com' >> ~/.bashrc
 source ~/.bashrc
@@ -183,33 +184,34 @@ source ~/.bashrc
 
 ---
 
-## 快速开始
+## Quick Start
 
-### 1. 克隆仓库并应用 patch
+### 1. Clone the Repositories and Apply the Patches
 
 ```bash
-# 克隆原始 SimLingo 仓库
+# Clone the original SimLingo repository
 git clone https://github.com/RenzKa/simlingo.git
-# 克隆本仓库
+
+# Clone this repository
 git clone https://github.com/lazysmoon/simlingo-openloop-eval.git
 
-# 进入 simlingo 目录，应用所有 patch
+# Enter the simlingo directory and apply all patches
 cd simlingo
 git apply ../simlingo-openloop-eval/patches/driving_model.patch
 git apply ../simlingo-openloop-eval/patches/agent_simlingo.patch
 git apply ../simlingo-openloop-eval/patches/leaderboard_evaluator.patch
 
-# 复制评估和可视化脚本
+# Copy the evaluation and visualization scripts
 cp ../simlingo-openloop-eval/predict.py simlingo_training/
 cp ../simlingo-openloop-eval/visualize_open_loop.py .
 cp ../simlingo-openloop-eval/visualize_single_frame.py .
 cp ../simlingo-openloop-eval/requirements.txt .
 ```
 
-### 2. 获取模型权重和 InternVL2-1B
+### 2. Obtain Model Weights and InternVL2-1B
 
-> **服务器用户**：权重已预置在公共目录，脚本会自动检测并跳过下载，直接建立软链接。
-> **本地用户**：若本地不存在权重，脚本会自动从 HuggingFace 下载。
+> **Server users:** The model weights are already available in the shared directory. The script automatically detects them, skips downloading, and creates symbolic links directly.  
+> **Local users:** If the weights do not exist locally, the script automatically downloads them from HuggingFace.
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
@@ -217,16 +219,16 @@ cd simlingo
 python3 -c "
 import os, subprocess, sys
 
-# ── 可按需修改的路径配置 ──────────────────────────────────────────────────
-SERVER_SIMLINGO_CKPT = '/opt/models/checkpoints/simlingo'   # 服务器上 SimLingo 权重目录
-SERVER_INTERNVL2     = '/opt/models/InternVL2-1B'           # 服务器上 InternVL2-1B 目录
-LOCAL_SIMLINGO_CKPT  = './checkpoints/simlingo'             # 本地目标路径（软链接 or 下载目录）
-LOCAL_INTERNVL2      = './models/InternVL2-1B'              # 本地目标路径（软链接 or 下载目录）
+# ── Path configuration that can be modified as needed ─────────────────────
+SERVER_SIMLINGO_CKPT = '/opt/models/checkpoints/simlingo'   # SimLingo checkpoint directory on the server
+SERVER_INTERNVL2     = '/opt/models/InternVL2-1B'           # InternVL2-1B directory on the server
+LOCAL_SIMLINGO_CKPT  = './checkpoints/simlingo'             # Local target path (symbolic link or download directory)
+LOCAL_INTERNVL2      = './models/InternVL2-1B'              # Local target path (symbolic link or download directory)
 # ─────────────────────────────────────────────────────────────────────────
 
 def ensure(server_path, local_path, download_fn):
     if os.path.exists(local_path):
-        print(f'[skip] 已存在: {local_path}')
+        print(f'[skip] Already exists: {local_path}')
         return
     if os.path.exists(server_path):
         parent = os.path.dirname(os.path.abspath(local_path))
@@ -234,7 +236,7 @@ def ensure(server_path, local_path, download_fn):
         os.symlink(os.path.abspath(server_path), local_path)
         print(f'[link] {local_path} -> {server_path}')
     else:
-        print(f'[download] 本地及服务器均未找到，开始下载到 {local_path} ...')
+        print(f'[download] Not found locally or on the server. Downloading to {local_path} ...')
         download_fn(local_path)
 
 # SimLingo checkpoint
@@ -251,14 +253,14 @@ def dl_internvl2(local_path):
 
 ensure(SERVER_SIMLINGO_CKPT, LOCAL_SIMLINGO_CKPT, dl_simlingo)
 ensure(SERVER_INTERNVL2,     LOCAL_INTERNVL2,     dl_internvl2)
-print('完成。')
+print('Done.')
 "
 ```
 
-### 3. 获取验证集数据
+### 3. Obtain the Validation Dataset
 
-> **服务器用户**：数据集已预置在公共目录，脚本会自动检测并跳过下载，直接建立软链接。
-> **本地用户**：若本地不存在数据，脚本会自动从 HuggingFace 下载并解压。
+> **Server users:** The dataset is already available in the shared directory. The script automatically detects it, skips downloading, and creates symbolic links directly.  
+> **Local users:** If the data does not exist locally, the script automatically downloads and extracts it from HuggingFace.
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
@@ -266,18 +268,18 @@ export HF_ENDPOINT=https://hf-mirror.com
 python3 -c "
 import os, subprocess, sys, shutil
 
-# ── 可按需修改的路径配置 ──────────────────────────────────────────────────
-SERVER_SIMLINGO_DATA = '/data/datasets/simlingo'              # 服务器上已解压的 simlingo 数据目录
-SERVER_BUCKETS       = '/data/datasets/bucketsv2_simlingo'    # 服务器上 buckets 目录
-LOCAL_SIMLINGO_DATA  = './database/simlingo'                 # 本地目标路径
-LOCAL_BUCKETS        = './database/bucketsv2_simlingo'       # 本地目标路径
+# ── Path configuration that can be modified as needed ─────────────────────
+SERVER_SIMLINGO_DATA = '/data/datasets/simlingo'             # Extracted SimLingo dataset directory on the server
+SERVER_BUCKETS       = '/data/datasets/bucketsv2_simlingo'   # Buckets directory on the server
+LOCAL_SIMLINGO_DATA  = './database/simlingo'                 # Local target path
+LOCAL_BUCKETS        = './database/bucketsv2_simlingo'       # Local target path
 
 CHUNK_FILENAME = 'data_simlingo_validation_3_scenarios_routes_validation_random_weather_seed_4_balanced_100_chunk_015.tar.gz'
 # ─────────────────────────────────────────────────────────────────────────
 
 def ensure_dir(server_path, local_path, download_fn):
     if os.path.exists(local_path):
-        print(f'[skip] 已存在: {local_path}')
+        print(f'[skip] Already exists: {local_path}')
         return
     if os.path.exists(server_path):
         parent = os.path.dirname(os.path.abspath(local_path))
@@ -285,10 +287,10 @@ def ensure_dir(server_path, local_path, download_fn):
         os.symlink(os.path.abspath(server_path), local_path)
         print(f'[link] {local_path} -> {server_path}')
     else:
-        print(f'[download] 本地及服务器均未找到，开始下载到 {local_path} ...')
+        print(f'[download] Not found locally or on the server. Downloading to {local_path} ...')
         download_fn(local_path)
 
-# chunk 数据下载 + 解压
+# Download and extract the chunk data
 def dl_chunk(local_path):
     from huggingface_hub import hf_hub_download
     os.makedirs('./database', exist_ok=True)
@@ -297,10 +299,10 @@ def dl_chunk(local_path):
         filename=CHUNK_FILENAME, local_dir='./database'
     )
     os.makedirs(local_path, exist_ok=True)
-    print(f'[extract] 解压 {gz} -> {local_path}')
+    print(f'[extract] Extracting {gz} -> {local_path}')
     subprocess.check_call(['tar', '-xzf', gz, '-C', local_path])
 
-# buckets 下载
+# Download the buckets file
 def dl_buckets(local_path):
     from huggingface_hub import hf_hub_download
     os.makedirs('./database', exist_ok=True)
@@ -315,24 +317,24 @@ def dl_buckets(local_path):
 
 ensure_dir(SERVER_SIMLINGO_DATA, LOCAL_SIMLINGO_DATA, dl_chunk)
 ensure_dir(SERVER_BUCKETS,       LOCAL_BUCKETS,       dl_buckets)
-print('完成。')
+print('Done.')
 "
 ```
 
-### 4. 配置路径
+### 4. Configure Paths
 
 ```bash
 cd simlingo_training
 
-# 建立软链接
+# Create symbolic links
 ln -sf ../database database
 ln -sf ../data data
 ln -sf ../checkpoints/simlingo/.hydra .hydra
 ```
 
-#### 4.1 修改 simlingo_seed1.yaml 中的模型路径
+#### 4.1 Modify the Model Path in simlingo_seed1.yaml
 
-`config/experiment/simlingo_seed1.yaml` 中默认使用 HuggingFace 远程仓库名：
+By default, `config/experiment/simlingo_seed1.yaml` uses the remote HuggingFace repository name:
 
 ```yaml
 model:
@@ -342,49 +344,50 @@ model:
     variant: 'OpenGVLab/InternVL2-1B'
 ```
 
-**需要将其替换为本地实际路径**（步骤 2 中已下载或软链接到 `./models/InternVL2-1B`）：
+**Replace it with the actual local path** (downloaded or symbolically linked to `./models/InternVL2-1B` in Step 2):
 
 ```bash
-# 方式一：自动替换（推荐）
-# 在 simlingo_training/ 目录下执行：
+# Method 1: Automatic replacement (recommended)
+# Run this command inside the simlingo_training/ directory:
 INTERNVL2_LOCAL_PATH="$(cd .. && pwd)/models/InternVL2-1B"
 
 sed -i "s|'OpenGVLab/InternVL2-1B'|'${INTERNVL2_LOCAL_PATH}'|g" \
     config/experiment/simlingo_seed1.yaml
 
-# 验证替换结果
+# Verify the replacement
 grep "variant" config/experiment/simlingo_seed1.yaml
 ```
 
 ```bash
-# 方式二：手动编辑
-# 将 config/experiment/simlingo_seed1.yaml 中两处 variant 改为本地路径：
+# Method 2: Edit manually
+# Change both variant entries in config/experiment/simlingo_seed1.yaml to the local path:
 #
 #   language_model:
-#     variant: '/your/abs/path/to/models/InternVL2-1B'   ← 改这里
+#     variant: '/your/abs/path/to/models/InternVL2-1B'   <- Change this
 #   vision_model:
-#     variant: '/your/abs/path/to/models/InternVL2-1B'   ← 改这里
+#     variant: '/your/abs/path/to/models/InternVL2-1B'   <- Change this
 ```
 
-> ⚠️ 必须使用**绝对路径**，相对路径会因 Hydra 改变工作目录而失效。
+> ⚠️ You **must use an absolute path**. A relative path may become invalid because Hydra changes the working directory.
 >
-> ⚠️ 替换后，评估结果的输出目录名会从 `OpenGVLab/InternVL2-1B/` 变为本地路径末段目录名（如 `InternVL2-1B/`）。可用以下命令查找结果文件：
+> ⚠️ After replacing the path, the output directory name for evaluation results will change from `OpenGVLab/InternVL2-1B/` to the final directory name of the local path (for example, `InternVL2-1B/`). Use the following command to locate the result file:
+>
 > ```bash
 > find . -name "per_frame_waypoints_rank_0.json" 2>/dev/null
 > ```
 
-### 5. 运行开环评估
+### 5. Run Open-Loop Evaluation
 
 ```bash
 cd simlingo_training
 
-# ⚠️ 将 checkpoint 路径替换为实际绝对路径！
-# 查找方法: find .. -name "pytorch_model.pt" 2>/dev/null
-# 典型路径: ../checkpoints/simlingo/simlingo/checkpoints/epoch=013.ckpt/pytorch_model.pt
+# ⚠️ Replace the checkpoint path with the actual absolute path!
+# Search command: find .. -name "pytorch_model.pt" 2>/dev/null
+# Typical path: ../checkpoints/simlingo/simlingo/checkpoints/epoch=013.ckpt/pytorch_model.pt
 
 HYDRA_FULL_ERROR=1 python predict.py \
     'experiment=simlingo_seed1' \
-    'checkpoint="path/to/pytorch_model.pt"' \            #绝对路径
+    'checkpoint="path/to/pytorch_model.pt"' \            # Absolute path
     'data_module.base_dataset.data_path=database/simlingo' \
     'data_module.base_dataset.bucket_path=database/bucketsv2_simlingo' \
     'data_module.batch_size=1' \
@@ -392,33 +395,37 @@ HYDRA_FULL_ERROR=1 python predict.py \
     'gpus=1'
 ```
 
-评估结果保存在：
-```
+Evaluation results are saved to:
+
+```text
 simlingo_training/outputs/path/to/predictions/dreamer_results_rank_0.json
 ```
 
 ---
 
-## 使用本地 InternVL2-1B 模型（离线环境必读）
+## Using a Local InternVL2-1B Model (Required Reading for Offline Environments)
 
-如果你的机器无法访问 HuggingFace（即使设置了镜像），需要提前下载 InternVL2-1B 到本地，并做以下三处修改：
+If your machine cannot access HuggingFace, even after configuring the mirror endpoint, download InternVL2-1B locally in advance and make the following three modifications:
 
-**修改 1：配置文件中的 variant**
+**Modification 1: `variant` in the configuration files**
 
 ```bash
-# 将所有实验配置中的远程仓库名替换为本地路径
+# Replace the remote repository name with the local path in all experiment configurations
 sed -i "s|'OpenGVLab/InternVL2-1B'|'/your/path/to/models/InternVL2-1B'|g" config/experiment/*.yaml
 ```
 
-**修改 2：internvl2_utils.py 中的 snapshot_download**
+**Modification 2: `snapshot_download` in `internvl2_utils.py`**
 
-在 `simlingo_training/utils/internvl2_utils.py` 约第 107 行，将：
+At approximately line 107 in `simlingo_training/utils/internvl2_utils.py`, replace:
+
 ```python
     cache_dir = f"{cache_root_dir}/{(encoder_variant.split('/')[1])}"
     # get absolute path from workspace dir not wokring dir
     cache_dir = to_absolute_path(cache_dir)
 ```
-替换为：
+
+with:
+
 ```python
     if os.path.isdir(encoder_variant):
         cache_dir = encoder_variant
@@ -427,42 +434,46 @@ sed -i "s|'OpenGVLab/InternVL2-1B'|'/your/path/to/models/InternVL2-1B'|g" config
         cache_dir = to_absolute_path(cache_dir)
 ```
 
-**修改 3（可选）：visualize_single_frame.py 中的模型路径**
+**Modification 3 (optional): Model path in `visualize_single_frame.py`**
 
-修改约第 196 行：
+Modify approximately line 196:
+
 ```python
 model_name = "/your/path/to/models/InternVL2-1B"
 ```
-或直接使用 `--no_llm` 参数跳过场景描述生成。
 
-> **注意**：修改 variant 后，评估输出目录名也会变化。可用以下命令查找结果文件：
+Alternatively, use the `--no_llm` option to skip scene-description generation.
+
+> **Note:** After changing `variant`, the evaluation output directory name will also change. Use the following command to locate the result file:
+>
 > ```bash
 > find . -name "per_frame_waypoints_rank_0.json" 2>/dev/null
 > ```
 
 ---
 
-## 可视化
+## Visualization
 
-### 安装中文字体（避免图表乱码）
+### Install a CJK Font to Avoid Garbled Plot Text
 
 ```bash
-# 安装文泉驿正黑字体
+# Install the WenQuanYi Zen Hei font
 sudo apt-get install fonts-wqy-zenhei -y
 
-# 清除 matplotlib 字体缓存
+# Clear the Matplotlib font cache
 python -c "import matplotlib; import shutil; shutil.rmtree(matplotlib.get_cachedir(), ignore_errors=True)"
 
-# 确认字体路径（如果不同需修改脚本中的 font_path）
+# Verify the font path (if it differs, update font_path in the scripts)
 find / -name "wqy*" 2>/dev/null
 ```
 
-确保 `visualize_open_loop.py` 和 `visualize_single_frame.py` 中的字体路径正确：
+Make sure the font path in `visualize_open_loop.py` and `visualize_single_frame.py` is correct:
+
 ```python
 font_path = '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'
 ```
 
-### 批量可视化（ADE/FDE 分布 + 最优/最差帧对比）
+### Batch Visualization (ADE/FDE Distributions + Best/Worst Frame Comparison)
 
 ```bash
 cd simlingo
@@ -472,17 +483,17 @@ python visualize_open_loop.py \
     --output eval_results/visualization
 ```
 
-输出文件：
+Output files:
 
-| 文件 | 内容 |
-|------|------|
-| `01_summary.png` | ADE/FDE 汇总统计 |
-| `02_metrics_distribution.png` | ADE/FDE 分布直方图 |
-| `03_worst_frames.png` | 预测最差的 12 帧 |
-| `04_best_frames.png` | 预测最优的 12 帧 |
-| `05_random_frames.png` | 随机 12 帧 |
+| File | Description |
+|------|-------------|
+| `01_summary.png` | ADE/FDE summary statistics |
+| `02_metrics_distribution.png` | ADE/FDE distribution histograms |
+| `03_worst_frames.png` | 12 frames with the worst predictions |
+| `04_best_frames.png` | 12 frames with the best predictions |
+| `05_random_frames.png` | 12 randomly selected frames |
 
-### 单帧完整分析（图像 + 路点 + 场景描述）
+### Complete Single-Frame Analysis (Image + Waypoints + Scene Description)
 
 ```bash
 python visualize_single_frame.py \
@@ -491,79 +502,87 @@ python visualize_single_frame.py \
     --output eval_results/single_frame
 ```
 
-加 `--no_llm` 跳过语言描述生成（无网络环境推荐，节省约 30 秒）。
+Add `--no_llm` to skip language-description generation. This is recommended in offline environments and saves approximately 30 seconds.
 
 ---
 
-## 文件说明
+## File Description
 
-```
+```text
 simlingo-openloop-eval/
-├── predict.py                     # 开环评估主脚本
-├── visualize_open_loop.py         # 批量可视化
-├── visualize_single_frame.py      # 单帧完整分析
-├── run_eval_local.sh              # 闭环评估脚本（需要 CARLA）
-├── download_model.py              # 模型权重下载
-├── requirements.txt   # Python 3.11 环境依赖列表
-├── install_env.sh                 # conda 环境一键安装脚本
+├── predict.py                     # Main open-loop evaluation script
+├── visualize_open_loop.py         # Batch visualization
+├── visualize_single_frame.py      # Complete single-frame analysis
+├── run_eval_local.sh              # Closed-loop evaluation script (requires CARLA)
+├── download_model.py              # Model checkpoint downloader
+├── requirements.txt               # Dependency list for the Python 3.11 environment
+├── install_env.sh                 # One-click Conda environment installation script
 └── patches/
-    ├── driving_model.patch        # driving.py 修复
-    ├── agent_simlingo.patch       # agent 路径修复
-    ├── leaderboard_evaluator.patch # 移除 debugpy，添加 quality-level
-    └── debug_config.patch         # 实验配置修复
+    ├── driving_model.patch        # Fixes for driving.py
+    ├── agent_simlingo.patch       # Agent path fixes
+    ├── leaderboard_evaluator.patch # Removes debugpy and adds quality-level
+    └── debug_config.patch         # Experiment configuration fixes
 ```
 
 ---
 
-## 常见问题
+## FAQ
 
 **Q: `MissingCUDAException: CUDA_HOME does not exist`**
 
-DeepSpeed 需要 `CUDA_HOME` 环境变量。运行前执行 `export CUDA_HOME=$CONDA_PREFIX`。如果只想跳过 CUDA 编译：`DS_BUILD_OPS=0 python predict.py ...`
+DeepSpeed requires the `CUDA_HOME` environment variable. Run `export CUDA_HOME=$CONDA_PREFIX` before execution. If you only want to skip CUDA compilation, use: `DS_BUILD_OPS=0 python predict.py ...`
 
 **Q: `CUDA error: no kernel image is available for execution on the device`**
 
-GPU 架构不被当前 PyTorch 支持。RTX 50 系列用户必须使用方式一安装环境，或参考方式二中的 Blackwell 适配步骤。
+The current PyTorch installation does not support your GPU architecture. RTX 50-series users must use Method 1 to install the environment, or follow the Blackwell adaptation steps in Method 2.
 
 **Q: `Connection to huggingface.co timed out`**
 
-国内无法直接访问 HuggingFace。所有命令前加 `export HF_ENDPOINT=https://hf-mirror.com`。InternVL2-1B 务必提前下载到本地（见步骤 2）。
+HuggingFace may not be directly accessible from networks in Mainland China. Add `export HF_ENDPOINT=https://hf-mirror.com` before all related commands. Make sure InternVL2-1B is downloaded locally in advance (see Step 2).
 
 **Q: `HFValidationError: Repo id must be in the form 'repo_name' or 'namespace/repo_name'`**
 
-使用了本地模型路径但代码不兼容。请参考 [使用本地 InternVL2-1B 模型](#使用本地-internvl2-1b-模型离线环境必读) 中的修改 2。
+You are using a local model path, but the code is not compatible with local paths. See Modification 2 in [Using a Local InternVL2-1B Model](#using-a-local-internvl2-1b-model-required-reading-for-offline-environments).
 
 **Q: `FileNotFoundError: .../path/to/simlingo/checkpoints/...`**
 
-checkpoint 路径是占位符，请替换为实际路径：`find .. -name "pytorch_model.pt" 2>/dev/null`
+The checkpoint path is a placeholder. Replace it with the actual path:
 
-**Q: `No module named 'carla'`（Python 3.11 环境）**
+```bash
+find .. -name "pytorch_model.pt" 2>/dev/null
+```
 
-Python 3.11 下安装：`pip install carla==0.9.16`
+**Q: `No module named 'carla'` (Python 3.11 environment)**
 
-**Q: 可视化图表中文乱码**
+Install CARLA for Python 3.11:
 
-系统缺少中文字体，参考 [安装中文字体](#安装中文字体避免图表乱码) 部分。
+```bash
+pip install carla==0.9.16
+```
+
+**Q: Garbled text in visualization plots**
+
+The system is missing the required font. See [Install a CJK Font to Avoid Garbled Plot Text](#install-a-cjk-font-to-avoid-garbled-plot-text).
 
 **Q: CUDA out of memory**
 
-闭环评估 CARLA 会占用约 5.7GB 显存，总显存不足 16GB 会 OOM。开环评估无需 CARLA，4GB 显存即可。
+Closed-loop CARLA evaluation uses approximately 5.7GB of VRAM, and the total VRAM requirement may exceed 16GB. Open-loop evaluation does not require CARLA and can run with 4GB of VRAM.
 
-**Q: `get_original_cwd()` 报错**
+**Q: `get_original_cwd()` error**
 
-需要在 `simlingo_training/` 目录下运行 `predict.py`，且需建立软链接（见步骤 4）。
+Run `predict.py` from the `simlingo_training/` directory and make sure the required symbolic links have been created (see Step 4).
 
-**Q: 下载速度慢**
+**Q: Slow download speed**
 
-所有 HuggingFace 下载均支持 `HF_ENDPOINT=https://hf-mirror.com` 镜像加速。
+All HuggingFace downloads support mirror acceleration through `HF_ENDPOINT=https://hf-mirror.com`.
 
 ---
 
-## 致谢
+## Acknowledgments
 
-本项目基于 [SimLingo](https://github.com/RenzKa/simlingo)（CVPR 2025 Spotlight）构建，感谢原作者的开源工作。
+This project is built on [SimLingo](https://github.com/RenzKa/simlingo) (CVPR 2025 Spotlight). We thank the original authors for making their work open source.
 
-## 引用
+## Citation
 
 ```bibtex
 @inproceedings{renz2025simlingo,
